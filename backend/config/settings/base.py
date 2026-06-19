@@ -195,7 +195,7 @@ SIMPLE_JWT = {
     'AUTH_COOKIE': 'refresh_token',
     'AUTH_COOKIE_SECURE': config('JWT_COOKIE_SECURE', default=False, cast=bool),
     'AUTH_COOKIE_HTTP_ONLY': True,
-    'AUTH_COOKIE_SAMESITE': 'Lax',
+    'AUTH_COOKIE_SAMESITE': config('JWT_COOKIE_SAMESITE', default='Lax'),
 }
 
 # dj-rest-auth
@@ -213,6 +213,13 @@ CORS_ALLOWED_ORIGINS = config(
     cast=Csv()
 )
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://localhost:3000,http://127.0.0.1:3000',
+    cast=Csv()
+)
 
 # Cache
 if USE_SQLITE:

@@ -79,6 +79,26 @@ class AIChatViewSet(viewsets.ViewSet):
         serializer = ConversationLogSerializer(log_obj)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, methods=['get'])
+    def history(self, request):
+        session_id = request.query_params.get('session_id', None)
+        if not session_id:
+            logs = ConversationLog.objects.filter(
+                user=request.user,
+                interaction_type='chat'
+            ).order_by('-created_at')[:50]
+            logs = list(logs)
+            logs.reverse()
+        else:
+            logs = ConversationLog.objects.filter(
+                user=request.user,
+                session_id=session_id,
+                interaction_type='chat'
+            ).order_by('created_at')
+
+        serializer = ConversationLogSerializer(logs, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class AITeachingViewSet(viewsets.ViewSet):
     """
@@ -133,4 +153,13 @@ class SuccessPredictionViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return SuccessPrediction.objects.filter(user=self.request.user)
+        user = self.request.user
+        qs = SuccessPrediction.objects.filter(user=user)
+        if not qs.exists():
+            from apps.analytics.calculator import AnalyticsCalculator
+            try:
+                AnalyticsCalculator.recalculate_student_metrics(user)
+                qs = SuccessPrediction.objects.filter(user=user)
+            except Exception as e:
+                logger.error(f"Error calculating default success prediction for {user.email}: {e}")
+        return qs

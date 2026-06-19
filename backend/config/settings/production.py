@@ -16,8 +16,12 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 X_FRAME_OPTIONS = 'DENY'
 
-# JWT cookies must be secure in production
+# Proxy SSL Header for Django to detect HTTPS behind reverse proxy
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# JWT cookies must be secure in production and allow cross-site requests
 SIMPLE_JWT['AUTH_COOKIE_SECURE'] = True  # noqa: F405
+SIMPLE_JWT['AUTH_COOKIE_SAMESITE'] = config('JWT_COOKIE_SAMESITE', default='None')  # noqa: F405
 
 # Static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'

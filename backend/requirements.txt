@@ -11,9 +11,8 @@ dj-rest-auth==7.0.0
 PyJWT==2.10.1
 
 # Database
-# psycopg2-binary==2.9.10
-# pgvector==0.3.6
-# django-pgvector==0.2.1
+psycopg2-binary==2.9.10
+pgvector==0.3.6
 
 # Cache & Task Queue
 redis==5.2.1
@@ -37,6 +36,7 @@ whitenoise==6.8.2
 # Security
 django-otp==1.5.4
 django-two-factor-auth==1.17.0
+phonenumbers==8.13.52
 
 # Utilities
 python-decouple==3.8

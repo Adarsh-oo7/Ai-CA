@@ -46,12 +46,17 @@ class LoginView(APIView):
         })
 
         # Set refresh token as httpOnly cookie
+        from django.conf import settings
+        jwt_settings = getattr(settings, 'SIMPLE_JWT', {})
+        cookie_samesite = jwt_settings.get('AUTH_COOKIE_SAMESITE', 'Lax')
+        cookie_secure = jwt_settings.get('AUTH_COOKIE_SECURE', request.is_secure())
+
         response.set_cookie(
             'refresh_token',
             str(refresh),
             httponly=True,
-            samesite='Lax',
-            secure=request.is_secure(),
+            samesite=cookie_samesite,
+            secure=cookie_secure,
             max_age=7 * 24 * 60 * 60,  # 7 days
         )
 
@@ -80,10 +85,64 @@ class LogoutView(APIView):
             )
 
             response = Response({'detail': 'Logged out successfully.'})
-            response.delete_cookie('refresh_token')
+            
+            from django.conf import settings
+            jwt_settings = getattr(settings, 'SIMPLE_JWT', {})
+            cookie_samesite = jwt_settings.get('AUTH_COOKIE_SAMESITE', 'Lax')
+            cookie_secure = jwt_settings.get('AUTH_COOKIE_SECURE', request.is_secure())
+            
+            response.delete_cookie(
+                'refresh_token',
+                samesite=cookie_samesite,
+                secure=cookie_secure
+            )
             return response
         except Exception:
             return Response({'detail': 'Logged out.'}, status=status.HTTP_200_OK)
+
+
+class CookieTokenRefreshView(TokenRefreshView):
+    """
+    Custom TokenRefreshView that reads the refresh token from cookies
+    if it's not present in the request body, and sets the rotated refresh token
+    as an httpOnly cookie in the response.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        raw_data = request.data.copy() if hasattr(request.data, 'copy') else {}
+        
+        if not raw_data.get('refresh'):
+            cookie_refresh = request.COOKIES.get('refresh_token')
+            if cookie_refresh:
+                raw_data['refresh'] = cookie_refresh
+        
+        serializer = self.get_serializer(data=raw_data)
+        
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            return Response({'detail': 'Token is invalid or expired.'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        response_data = serializer.validated_data
+        response = Response(response_data, status=status.HTTP_200_OK)
+        
+        new_refresh = response_data.get('refresh')
+        if new_refresh:
+            from django.conf import settings
+            jwt_settings = getattr(settings, 'SIMPLE_JWT', {})
+            cookie_samesite = jwt_settings.get('AUTH_COOKIE_SAMESITE', 'Lax')
+            cookie_secure = jwt_settings.get('AUTH_COOKIE_SECURE', request.is_secure())
+            
+            response.set_cookie(
+                'refresh_token',
+                new_refresh,
+                httponly=True,
+                samesite=cookie_samesite,
+                secure=cookie_secure,
+                max_age=7 * 24 * 60 * 60,
+            )
+        return response
 
 
 class ProfileView(generics.RetrieveUpdateAPIView):

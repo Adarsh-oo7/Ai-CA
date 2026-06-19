@@ -8,7 +8,7 @@ from . import views
 urlpatterns = [
     path('login/', views.LoginView.as_view(), name='login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/refresh/', views.CookieTokenRefreshView.as_view(), name='token_refresh'),
     path('google/', views.GoogleLoginView.as_view(), name='google_login'),
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('onboarding/', views.OnboardingView.as_view(), name='onboarding'),

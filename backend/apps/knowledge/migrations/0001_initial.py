@@ -7,6 +7,12 @@ from django.conf import settings
 from django.db import migrations, models
 
 
+try:
+    is_sqlite = settings.DATABASES.get('default', {}).get('ENGINE', '').endswith('sqlite3')
+except Exception:
+    is_sqlite = False
+
+
 class Migration(migrations.Migration):
 
     initial = True
@@ -16,7 +22,15 @@ class Migration(migrations.Migration):
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
-    operations = [
+    if not is_sqlite:
+        from pgvector.django import VectorExtension
+        operations = [
+            VectorExtension(),
+        ]
+    else:
+        operations = []
+
+    operations.extend([
         migrations.CreateModel(
             name="DocumentChunk",
             fields=[
@@ -33,7 +47,12 @@ class Migration(migrations.Migration):
                 ("chunk_index", models.IntegerField(default=0)),
                 ("page_number", models.IntegerField(blank=True, null=True)),
                 ("token_count", models.IntegerField(default=0)),
-                ("embedding", apps.knowledge.models.VectorField(blank=True, null=True)),
+                (
+                    "embedding",
+                    apps.knowledge.models.VectorField(
+                        blank=True, dimensions=768, null=True
+                    ),
+                ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 (
                     "chapter",
@@ -426,4 +445,4 @@ class Migration(migrations.Migration):
                 name="knowledge_d_documen_ea33de_idx",
             ),
         ),
-    ]
+    ])
